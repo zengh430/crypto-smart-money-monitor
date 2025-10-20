@@ -293,7 +293,7 @@ DEFAULT_LANGUAGE = "zh"  # "zh" 为中文, "en" 为英文
 
 - **作者**: Howard Zeng
 - **GitHub**: [@zengh430](https://github.com/zengh430)
-- **LinkedIn**: [Howard Zeng](https://linkedin.com/in/yourprofile)
+- **LinkedIn**: [Howard Zeng](https://www.linkedin.com/in/hao-zeng2024/)
 - **Email**: zengh430@gmai.com
 
 ---
