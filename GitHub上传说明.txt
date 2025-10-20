@@ -1,0 +1,208 @@
+================================================================
+  加密货币聪明钱监控系统 - GitHub 上传指南
+  作者: Howard Zeng
+================================================================
+
+📋 准备工作
+================================================================
+
+1. 确保已安装 Git
+   - 下载地址: https://git-scm.com/download/win
+   - 安装后重启命令行
+
+2. 配置 Git 用户信息（首次使用需要）
+   打开命令行执行：
+
+   git config --global user.name "Howard Zeng"
+   git config --global user.email "zengh430@gmail.com"
+
+3. 确保已在 GitHub 创建仓库
+   - 仓库名称: crypto-smart-money-monitor
+   - 地址: https://github.com/zengh430/crypto-smart-money-monitor
+   - 建议: 创建时不要添加 README、.gitignore 或 LICENSE（保持空仓库）
+
+
+🚀 首次上传
+================================================================
+
+方法1: 使用一键脚本（推荐）
+
+   直接双击运行: 上传到GitHub.bat
+
+   脚本会自动完成：
+   ✓ 初始化 Git 仓库
+   ✓ 配置远程仓库地址
+   ✓ 添加所有文件
+   ✓ 创建首次提交
+   ✓ 推送到 GitHub
+
+
+方法2: 手动命令行
+
+   打开命令行，进入项目目录，执行：
+
+   git init
+   git remote add origin https://github.com/zengh430/crypto-smart-money-monitor.git
+   git add .
+   git commit -m "Initial commit"
+   git branch -M main
+   git push -u origin main
+
+
+🔄 后续更新
+================================================================
+
+修改代码后，使用更新脚本：
+
+   双击运行: 更新到GitHub.bat
+
+   脚本会：
+   ✓ 显示当前更改
+   ✓ 询问提交信息
+   ✓ 自动添加、提交、推送
+
+
+或手动执行：
+
+   git add .
+   git commit -m "你的更新说明"
+   git push origin main
+
+
+🔧 常见问题
+================================================================
+
+问题1: 推送时要求登录
+解决:
+   - Windows 会弹出 GitHub 登录窗口
+   - 使用你的 GitHub 账号登录即可
+   - 登录一次后会记住凭据
+
+问题2: 推送失败，提示 "rejected"
+解决:
+   git pull origin main --rebase
+   git push origin main
+
+问题3: 想要强制覆盖远程仓库
+警告: 这会删除远程的所有内容！
+   git push origin main --force
+
+问题4: 文件太大无法上传
+解决:
+   - GitHub 单文件限制 100MB
+   - 检查 .gitignore 确保大文件被忽略
+   - 使用 Git LFS 处理大文件
+
+问题5: 想撤销本地更改
+解决:
+   git reset --hard HEAD
+   git clean -fd
+
+
+📁 项目结构
+================================================================
+
+当前仓库包含的文件：
+
+核心文件:
+  - hyperliquid_monitor.py    主程序
+  - language_config.py         语言配置
+  - okx_trader.py             OKX API客户端
+  - requirements.txt          依赖列表
+
+配置文件:
+  - config_example.py         配置示例
+  - okx_config.example.json   OKX配置示例
+
+文档:
+  - README.md                 中文文档
+  - README_EN.md              英文文档
+  - LICENSE                   MIT许可证
+
+工具脚本:
+  - 安装依赖.bat              安装Python依赖
+  - 快速启动.bat              启动程序
+  - 上传到GitHub.bat          首次上传
+  - 更新到GitHub.bat          推送更新
+
+被忽略的文件（不会上传）:
+  - config.py                 个人配置（含密钥）
+  - okx_config.json           OKX配置（含API密钥）
+  - __pycache__/              Python缓存
+  - *.log                     日志文件
+  - debug_*.html              调试文件
+
+
+🎯 上传后的操作
+================================================================
+
+1. 访问你的仓库
+   https://github.com/zengh430/crypto-smart-money-monitor
+
+2. 添加仓库描述
+   点击 "About" 旁边的齿轮图标
+   添加: "Real-time cryptocurrency market monitoring system with AI-assisted development"
+
+3. 添加主题标签 (Topics)
+   python, tkinter, cryptocurrency, ai-assisted, selenium,
+   trading, visualization, okx, hyperliquid, fintech
+
+4. 启用 GitHub Pages（可选）
+   Settings -> Pages -> 选择 main 分支
+
+5. 添加 Star 项目
+   给自己的项目点个星！
+
+
+📢 分享到其他平台
+================================================================
+
+LinkedIn:
+  - 发布项目完成动态
+  - 附上 GitHub 链接
+  - 强调 AI 辅助开发和技术栈
+
+简历:
+  - 项目名称: Crypto Smart Money Monitor
+  - GitHub: github.com/zengh430/crypto-smart-money-monitor
+  - 技术栈: Python, Tkinter, Selenium, AI-Assisted Dev
+  - 亮点: 数天内完成，95%双语覆盖，多数据源集成
+
+
+✅ 检查清单
+================================================================
+
+上传前检查:
+  [ ] README 链接已更新为实际仓库地址
+  [ ] 联系方式已更新（GitHub、Email）
+  [ ] .gitignore 包含所有敏感文件
+  [ ] 删除了所有调试和临时文件
+  [ ] requirements.txt 包含所有依赖
+
+上传后检查:
+  [ ] 仓库可以正常访问
+  [ ] README 在仓库首页正确显示
+  [ ] 代码文件都已成功上传
+  [ ] 没有上传敏感配置文件
+  [ ] LICENSE 文件存在
+
+
+💡 小贴士
+================================================================
+
+- 提交信息要清晰: 说明做了什么改动
+- 定期备份: 推送到 GitHub 就是最好的备份
+- 使用分支: 开发新功能时创建分支
+- 写好文档: README 是项目的名片
+- Star 有用的项目: 建立你的收藏库
+
+
+================================================================
+  祝你的项目获得更多 Star！⭐
+================================================================
+
+如有问题，请查看 Git 官方文档:
+https://git-scm.com/doc
+
+GitHub 官方指南:
+https://docs.github.com/cn
