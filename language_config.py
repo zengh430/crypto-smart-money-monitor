@@ -15,6 +15,7 @@ LANGUAGES = {
         'tab_okx_table': 'OKX 数据表格',
         'tab_okx_heatmap': 'OKX 市值热力图',
         'tab_okx_analysis': 'OKX 市场分析',
+        'tab_favorites': '⭐ 收藏地址',
 
         # 按钮
         'btn_refresh': '刷新数据',
@@ -27,6 +28,11 @@ LANGUAGES = {
         'btn_manual_trade': '手动交易',
         'btn_auto_copy': '启动跟单',
         'btn_stop_copy': '停止跟单',
+        'btn_add_favorite': '⭐ 收藏',
+        'btn_remove_favorite': '❌ 取消收藏',
+        'btn_favorite_refresh': '刷新收藏',
+        'btn_favorite_export': '导出收藏',
+        'btn_favorite_import': '导入收藏',
 
         # 筛选面板
         'filter_title': '数据筛选',
@@ -155,6 +161,31 @@ LANGUAGES = {
         'msg_update_failed': '刷新数据失败',
         'msg_update_failed_title': '失败',
 
+        # 收藏功能
+        'favorite_title': '收藏地址管理',
+        'favorite_address': '地址',
+        'favorite_note': '备注',
+        'favorite_tags': '标签',
+        'favorite_created_at': '创建时间',
+        'favorite_updated_at': '更新时间',
+        'favorite_add_title': '添加收藏',
+        'favorite_edit_title': '编辑收藏',
+        'favorite_input_address': '请输入钱包地址:',
+        'favorite_input_note': '备注 (可选):',
+        'favorite_input_tags': '标签 (用逗号分隔，可选):',
+        'favorite_search': '搜索地址/备注',
+        'favorite_filter_by_tags': '按标签筛选',
+        'favorite_view_details': '查看详情',
+        'msg_favorite_added': '地址已添加到收藏',
+        'msg_favorite_removed': '地址已从收藏中移除',
+        'msg_favorite_exists': '该地址已在收藏中',
+        'msg_favorite_export_success': '收藏已导出到: ',
+        'msg_favorite_import_success': '成功导入 {count} 个地址',
+        'msg_favorite_import_failed': '导入失败: ',
+        'msg_favorite_empty': '暂无收藏地址',
+        'msg_favorite_confirm_remove': '确认移除收藏',
+        'msg_favorite_confirm_remove_text': '确定要从收藏中移除该地址吗？',
+
         # 其他
         'loading_text': '加载中',
         'no_data_text': '暂无数据',
@@ -173,6 +204,7 @@ LANGUAGES = {
         'tab_okx_table': 'OKX Data Table',
         'tab_okx_heatmap': 'OKX Market Heatmap',
         'tab_okx_analysis': 'OKX Market Analysis',
+        'tab_favorites': '⭐ Favorites',
 
         # Buttons
         'btn_refresh': 'Refresh',
@@ -185,6 +217,11 @@ LANGUAGES = {
         'btn_manual_trade': 'Manual Trade',
         'btn_auto_copy': 'Start Copy',
         'btn_stop_copy': 'Stop Copy',
+        'btn_add_favorite': '⭐ Add to Favorites',
+        'btn_remove_favorite': '❌ Remove',
+        'btn_favorite_refresh': 'Refresh',
+        'btn_favorite_export': 'Export',
+        'btn_favorite_import': 'Import',
 
         # Filter panel
         'filter_title': 'Data Filter',
@@ -312,6 +349,31 @@ LANGUAGES = {
         'msg_update_title': 'Success',
         'msg_update_failed': 'Data refresh failed',
         'msg_update_failed_title': 'Failed',
+
+        # Favorites
+        'favorite_title': 'Favorite Addresses',
+        'favorite_address': 'Address',
+        'favorite_note': 'Note',
+        'favorite_tags': 'Tags',
+        'favorite_created_at': 'Created',
+        'favorite_updated_at': 'Updated',
+        'favorite_add_title': 'Add Favorite',
+        'favorite_edit_title': 'Edit Favorite',
+        'favorite_input_address': 'Enter wallet address:',
+        'favorite_input_note': 'Note (optional):',
+        'favorite_input_tags': 'Tags (comma-separated, optional):',
+        'favorite_search': 'Search address/note',
+        'favorite_filter_by_tags': 'Filter by tags',
+        'favorite_view_details': 'View Details',
+        'msg_favorite_added': 'Address added to favorites',
+        'msg_favorite_removed': 'Address removed from favorites',
+        'msg_favorite_exists': 'Address already in favorites',
+        'msg_favorite_export_success': 'Favorites exported to: ',
+        'msg_favorite_import_success': 'Successfully imported {count} addresses',
+        'msg_favorite_import_failed': 'Import failed: ',
+        'msg_favorite_empty': 'No favorite addresses',
+        'msg_favorite_confirm_remove': 'Confirm Remove',
+        'msg_favorite_confirm_remove_text': 'Remove this address from favorites?',
 
         # Others
         'loading_text': 'Loading',

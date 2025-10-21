@@ -30,6 +30,7 @@ import numpy as np
 import squarify  # 用于树状图（热力图）
 from okx_trader import OKXTrader  # OKX交易模块
 from language_config import get_language_manager  # 语言管理器
+from address_favorites import AddressFavorites  # 地址收藏管理
 
 # 配置matplotlib中文字体（全局设置）
 plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'Arial Unicode MS', 'DejaVu Sans']
@@ -237,6 +238,9 @@ class HyperliquidMonitor:
 
         # 语言管理器
         self.lang = get_language_manager()
+
+        # 地址收藏管理器
+        self.favorites = AddressFavorites()
 
         # 数据存储
         self.data = {}
@@ -642,12 +646,12 @@ class HyperliquidMonitor:
         content_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         # 创建笔记本（标签页）
-        notebook = ttk.Notebook(content_frame)
-        notebook.pack(fill=tk.BOTH, expand=True)
+        self.notebook = ttk.Notebook(content_frame)
+        self.notebook.pack(fill=tk.BOTH, expand=True)
 
         # 原始数据标签页
-        raw_frame = tk.Frame(notebook, bg=COLORS['bg_secondary'])
-        notebook.add(raw_frame, text="原始数据")
+        raw_frame = tk.Frame(self.notebook, bg=COLORS['bg_secondary'])
+        self.notebook.add(raw_frame, text="原始数据")
 
         # 文本显示区域（可滚动）
         self.text_area = scrolledtext.ScrolledText(
@@ -661,8 +665,8 @@ class HyperliquidMonitor:
         self.text_area.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         # 持仓表格标签页
-        table_frame = tk.Frame(notebook, bg=COLORS['bg_secondary'])
-        notebook.add(table_frame, text="持仓数据")
+        table_frame = tk.Frame(self.notebook, bg=COLORS['bg_secondary'])
+        self.notebook.add(table_frame, text="持仓数据")
 
         # 配置表格样式（必须在创建表格之前）
         style = ttk.Style()
@@ -766,19 +770,22 @@ class HyperliquidMonitor:
 
         # ==================== OKX 标签页 ====================
         # OKX 数据表格标签页
-        self.create_okx_table_tab(notebook)
+        self.create_okx_table_tab(self.notebook)
 
         # OKX 热力图标签页
-        self.create_okx_heatmap_tab(notebook)
+        self.create_okx_heatmap_tab(self.notebook)
 
         # OKX 当前持仓标签页
-        self.create_okx_positions_tab(notebook)
+        self.create_okx_positions_tab(self.notebook)
 
         # OKX 当前委托标签页
-        self.create_okx_orders_tab(notebook)
+        self.create_okx_orders_tab(self.notebook)
 
         # 自动跟单监控标签页
-        self.create_auto_copy_monitor_tab(notebook)
+        self.create_auto_copy_monitor_tab(self.notebook)
+
+        # ==================== 收藏地址标签页 ====================
+        self.create_favorites_tab(self.notebook)
 
         # 消息提醒面板
         message_panel_frame = tk.LabelFrame(
@@ -2824,6 +2831,57 @@ class HyperliquidMonitor:
         self.detail_auto_refresh_cb.pack(side=tk.LEFT, padx=5)
         self.detail_ui_refs['auto_refresh_cb'] = self.detail_auto_refresh_cb
 
+        # 收藏按钮
+        user_address = details.get('full_address') or details['address']
+        is_favorited = self.favorites.is_favorite(user_address)
+
+        def toggle_favorite():
+            addr = details.get('full_address') or details['address']
+            if self.favorites.is_favorite(addr):
+                # 移除收藏
+                if self.favorites.remove_favorite(addr):
+                    self.add_message(self.lang.get_text('msg_favorite_removed'), 'success')
+                    favorite_btn.config(text=f"⭐ {self.lang.get_text('btn_add_favorite')}")
+                    # 刷新收藏列表显示
+                    if hasattr(self, 'favorites_tree'):
+                        self.refresh_favorites_display()
+            else:
+                # 添加收藏
+                if self.favorites.add_favorite(
+                    address=addr,
+                    note="",
+                    tags=[],
+                    metadata={
+                        'pnl_24h': details.get('pnl', {}).get('pnl_24h', 0),
+                        'total_pnl': details.get('pnl', {}).get('total_pnl', 0)
+                    }
+                ):
+                    self.add_message(self.lang.get_text('msg_favorite_added'), 'success')
+                    favorite_btn.config(text=f"❌ {self.lang.get_text('btn_remove_favorite')}")
+                    # 刷新收藏列表显示
+                    if hasattr(self, 'favorites_tree'):
+                        self.refresh_favorites_display()
+
+        favorite_btn_text = (
+            f"❌ {self.lang.get_text('btn_remove_favorite')}" if is_favorited
+            else f"⭐ {self.lang.get_text('btn_add_favorite')}"
+        )
+
+        favorite_btn = tk.Button(
+            control_frame,
+            text=favorite_btn_text,
+            command=toggle_favorite,
+            bg=COLORS['warning'] if is_favorited else COLORS['accent'],
+            fg=COLORS['text_primary'],
+            font=FONTS['body_bold'],
+            relief=tk.FLAT,
+            bd=0,
+            padx=15,
+            pady=8,
+            cursor='hand2'
+        )
+        favorite_btn.pack(side=tk.LEFT, padx=5)
+
         # 最后更新时间
         last_update_text = details.get('last_update', self.lang.get_text('detail_first_load'))
         self.update_time_label = tk.Label(
@@ -4115,6 +4173,472 @@ class HyperliquidMonitor:
 
         # 启动定时更新
         self.update_monitor_display()
+
+    def create_favorites_tab(self, notebook):
+        """创建收藏地址标签页"""
+        favorites_frame = tk.Frame(notebook, bg=COLORS['bg_secondary'])
+        notebook.add(favorites_frame, text=self.lang.get_text('tab_favorites'))
+
+        # 顶部工具栏
+        toolbar_frame = tk.Frame(favorites_frame, bg=COLORS['bg_tertiary'], height=60)
+        toolbar_frame.pack(fill=tk.X, padx=5, pady=5)
+        toolbar_frame.pack_propagate(False)
+
+        # 左侧搜索框
+        search_container = tk.Frame(toolbar_frame, bg=COLORS['bg_tertiary'])
+        search_container.pack(side=tk.LEFT, padx=10, pady=10)
+
+        tk.Label(
+            search_container,
+            text=self.lang.get_text('favorite_search') + ':',
+            font=FONTS['body'],
+            bg=COLORS['bg_tertiary'],
+            fg=COLORS['text_primary']
+        ).pack(side=tk.LEFT, padx=(0, 5))
+
+        self.favorite_search_var = tk.StringVar()
+        self.favorite_search_var.trace('w', lambda *args: self.refresh_favorites_display())
+        search_entry = tk.Entry(
+            search_container,
+            textvariable=self.favorite_search_var,
+            font=FONTS['body'],
+            bg=COLORS['bg_secondary'],
+            fg=COLORS['text_primary'],
+            insertbackground=COLORS['text_primary'],
+            width=30
+        )
+        search_entry.pack(side=tk.LEFT)
+
+        # 右侧按钮组
+        button_container = tk.Frame(toolbar_frame, bg=COLORS['bg_tertiary'])
+        button_container.pack(side=tk.RIGHT, padx=10, pady=10)
+
+        # 刷新按钮
+        refresh_btn = tk.Button(
+            button_container,
+            text=self.lang.get_text('btn_favorite_refresh'),
+            command=self.refresh_favorites_display,
+            font=FONTS['body'],
+            bg=COLORS['accent'],
+            fg=COLORS['text_primary'],
+            relief=tk.FLAT,
+            padx=15,
+            pady=5,
+            cursor='hand2'
+        )
+        refresh_btn.pack(side=tk.LEFT, padx=5)
+
+        # 导出按钮
+        export_btn = tk.Button(
+            button_container,
+            text=self.lang.get_text('btn_favorite_export'),
+            command=self.export_favorites,
+            font=FONTS['body'],
+            bg=COLORS['bg_primary'],
+            fg=COLORS['text_primary'],
+            relief=tk.FLAT,
+            padx=15,
+            pady=5,
+            cursor='hand2'
+        )
+        export_btn.pack(side=tk.LEFT, padx=5)
+
+        # 导入按钮
+        import_btn = tk.Button(
+            button_container,
+            text=self.lang.get_text('btn_favorite_import'),
+            command=self.import_favorites,
+            font=FONTS['body'],
+            bg=COLORS['bg_primary'],
+            fg=COLORS['text_primary'],
+            relief=tk.FLAT,
+            padx=15,
+            pady=5,
+            cursor='hand2'
+        )
+        import_btn.pack(side=tk.LEFT, padx=5)
+
+        # 收藏列表区域
+        list_frame = tk.Frame(favorites_frame, bg=COLORS['bg_secondary'])
+        list_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # 创建收藏列表表格
+        columns = (
+            self.lang.get_text('favorite_address'),
+            self.lang.get_text('favorite_note'),
+            self.lang.get_text('favorite_tags'),
+            self.lang.get_text('favorite_created_at'),
+            self.lang.get_text('favorite_updated_at')
+        )
+
+        self.favorites_tree = ttk.Treeview(
+            list_frame,
+            columns=columns,
+            show='headings',
+            height=20
+        )
+
+        # 设置列标题和宽度
+        column_widths = [250, 300, 200, 150, 150]
+        for i, col in enumerate(columns):
+            self.favorites_tree.heading(col, text=col)
+            self.favorites_tree.column(col, width=column_widths[i], anchor='w')
+
+        # 添加滚动条
+        vsb = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.favorites_tree.yview)
+        hsb = ttk.Scrollbar(list_frame, orient=tk.HORIZONTAL, command=self.favorites_tree.xview)
+        self.favorites_tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+        # 布局
+        self.favorites_tree.grid(row=0, column=0, sticky='nsew', padx=5, pady=5)
+        vsb.grid(row=0, column=1, sticky='ns')
+        hsb.grid(row=1, column=0, sticky='ew')
+
+        list_frame.grid_rowconfigure(0, weight=1)
+        list_frame.grid_columnconfigure(0, weight=1)
+
+        # 双击查看详情
+        self.favorites_tree.bind('<Double-Button-1>', self.on_favorite_double_click)
+
+        # 右键菜单
+        self.favorites_context_menu = tk.Menu(self.favorites_tree, tearoff=0)
+        self.favorites_context_menu.add_command(
+            label=self.lang.get_text('favorite_view_details'),
+            command=self.view_favorite_details
+        )
+        self.favorites_context_menu.add_command(
+            label=self.lang.get_text('favorite_edit_title'),
+            command=self.edit_favorite
+        )
+        self.favorites_context_menu.add_separator()
+        self.favorites_context_menu.add_command(
+            label=self.lang.get_text('btn_remove_favorite'),
+            command=self.remove_favorite
+        )
+
+        self.favorites_tree.bind('<Button-3>', self.show_favorites_context_menu)
+
+        # 底部统计信息
+        stats_frame = tk.Frame(favorites_frame, bg=COLORS['bg_tertiary'], height=40)
+        stats_frame.pack(fill=tk.X, padx=5, pady=5)
+        stats_frame.pack_propagate(False)
+
+        self.favorites_stats_label = tk.Label(
+            stats_frame,
+            text=self.lang.get_text('total_records', count=0),
+            font=FONTS['body'],
+            bg=COLORS['bg_tertiary'],
+            fg=COLORS['text_secondary']
+        )
+        self.favorites_stats_label.pack(side=tk.LEFT, padx=15, pady=10)
+
+        # 初始化显示
+        self.refresh_favorites_display()
+
+    def refresh_favorites_display(self):
+        """刷新收藏列表显示"""
+        try:
+            # 清空当前显示
+            for item in self.favorites_tree.get_children():
+                self.favorites_tree.delete(item)
+
+            # 获取搜索关键词
+            keyword = self.favorite_search_var.get() if hasattr(self, 'favorite_search_var') else ''
+
+            # 搜索收藏
+            favorites = self.favorites.search_favorites(keyword=keyword)
+
+            # 显示收藏列表
+            for fav in favorites:
+                # 格式化时间显示（只显示日期部分）
+                created_at = fav.get('created_at', '')[:10] if fav.get('created_at') else ''
+                updated_at = fav.get('updated_at', '')[:10] if fav.get('updated_at') else ''
+
+                # 格式化标签
+                tags_str = ', '.join(fav.get('tags', []))
+
+                self.favorites_tree.insert(
+                    '',
+                    'end',
+                    iid=fav['address'],  # 使用地址作为唯一标识
+                    values=(
+                        fav['address'],
+                        fav.get('note', ''),
+                        tags_str,
+                        created_at,
+                        updated_at
+                    )
+                )
+
+            # 更新统计信息
+            self.favorites_stats_label.config(
+                text=self.lang.get_text('total_records', count=len(favorites))
+            )
+
+        except Exception as e:
+            print(f"刷新收藏列表失败: {e}")
+
+    def on_favorite_double_click(self, event):
+        """双击收藏地址查看详情"""
+        self.view_favorite_details()
+
+    def view_favorite_details(self):
+        """查看收藏地址的详细信息"""
+        try:
+            selection = self.favorites_tree.selection()
+            if not selection:
+                return
+
+            address = selection[0]  # iid 就是地址
+
+            # 查找该地址在 user_links 中的详情页 URL
+            if hasattr(self, 'data') and 'user_links' in self.data:
+                user_links = self.data['user_links']
+                if address in user_links:
+                    url = user_links[address]
+                    # 使用现有的详情查看功能
+                    thread = threading.Thread(
+                        target=self.fetch_user_details,
+                        args=(url, address),
+                        daemon=True
+                    )
+                    thread.start()
+                else:
+                    messagebox.showinfo(
+                        self.lang.get_text('msg_refresh_title'),
+                        f"暂无该地址的详情页链接，请先在持仓数据中刷新。\n地址: {address}"
+                    )
+            else:
+                messagebox.showinfo(
+                    self.lang.get_text('msg_refresh_title'),
+                    "请先刷新持仓数据以获取地址详情链接。"
+                )
+
+        except Exception as e:
+            print(f"查看收藏详情失败: {e}")
+
+    def edit_favorite(self):
+        """编辑收藏地址"""
+        try:
+            selection = self.favorites_tree.selection()
+            if not selection:
+                return
+
+            address = selection[0]
+            fav = self.favorites.get_favorite(address)
+            if not fav:
+                return
+
+            # 创建编辑对话框
+            self.show_add_favorite_dialog(edit_mode=True, existing_data=fav)
+
+        except Exception as e:
+            print(f"编辑收藏失败: {e}")
+
+    def remove_favorite(self):
+        """移除收藏地址"""
+        try:
+            selection = self.favorites_tree.selection()
+            if not selection:
+                return
+
+            address = selection[0]
+
+            # 确认对话框
+            confirm = messagebox.askyesno(
+                self.lang.get_text('msg_favorite_confirm_remove'),
+                self.lang.get_text('msg_favorite_confirm_remove_text')
+            )
+
+            if confirm:
+                if self.favorites.remove_favorite(address):
+                    self.add_message(self.lang.get_text('msg_favorite_removed'), 'success')
+                    self.refresh_favorites_display()
+                else:
+                    messagebox.showerror("错误", "移除收藏失败")
+
+        except Exception as e:
+            print(f"移除收藏失败: {e}")
+
+    def show_favorites_context_menu(self, event):
+        """显示右键菜单"""
+        try:
+            # 选中点击的项
+            item = self.favorites_tree.identify_row(event.y)
+            if item:
+                self.favorites_tree.selection_set(item)
+                self.favorites_context_menu.post(event.x_root, event.y_root)
+        except Exception as e:
+            print(f"显示右键菜单失败: {e}")
+
+    def show_add_favorite_dialog(self, edit_mode=False, existing_data=None):
+        """显示添加/编辑收藏对话框"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title(
+            self.lang.get_text('favorite_edit_title') if edit_mode
+            else self.lang.get_text('favorite_add_title')
+        )
+        dialog.geometry("500x300")
+        dialog.configure(bg=COLORS['bg_secondary'])
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # 地址输入
+        tk.Label(
+            dialog,
+            text=self.lang.get_text('favorite_input_address'),
+            font=FONTS['body'],
+            bg=COLORS['bg_secondary'],
+            fg=COLORS['text_primary']
+        ).pack(padx=20, pady=(20, 5), anchor='w')
+
+        address_var = tk.StringVar(value=existing_data['address'] if existing_data else '')
+        address_entry = tk.Entry(
+            dialog,
+            textvariable=address_var,
+            font=FONTS['body'],
+            bg=COLORS['bg_tertiary'],
+            fg=COLORS['text_primary'],
+            insertbackground=COLORS['text_primary'],
+            state='readonly' if edit_mode else 'normal'
+        )
+        address_entry.pack(padx=20, pady=5, fill=tk.X)
+
+        # 备注输入
+        tk.Label(
+            dialog,
+            text=self.lang.get_text('favorite_input_note'),
+            font=FONTS['body'],
+            bg=COLORS['bg_secondary'],
+            fg=COLORS['text_primary']
+        ).pack(padx=20, pady=(10, 5), anchor='w')
+
+        note_var = tk.StringVar(value=existing_data.get('note', '') if existing_data else '')
+        note_entry = tk.Entry(
+            dialog,
+            textvariable=note_var,
+            font=FONTS['body'],
+            bg=COLORS['bg_tertiary'],
+            fg=COLORS['text_primary'],
+            insertbackground=COLORS['text_primary']
+        )
+        note_entry.pack(padx=20, pady=5, fill=tk.X)
+
+        # 标签输入
+        tk.Label(
+            dialog,
+            text=self.lang.get_text('favorite_input_tags'),
+            font=FONTS['body'],
+            bg=COLORS['bg_secondary'],
+            fg=COLORS['text_primary']
+        ).pack(padx=20, pady=(10, 5), anchor='w')
+
+        tags_str = ', '.join(existing_data.get('tags', [])) if existing_data else ''
+        tags_var = tk.StringVar(value=tags_str)
+        tags_entry = tk.Entry(
+            dialog,
+            textvariable=tags_var,
+            font=FONTS['body'],
+            bg=COLORS['bg_tertiary'],
+            fg=COLORS['text_primary'],
+            insertbackground=COLORS['text_primary']
+        )
+        tags_entry.pack(padx=20, pady=5, fill=tk.X)
+
+        # 按钮
+        button_frame = tk.Frame(dialog, bg=COLORS['bg_secondary'])
+        button_frame.pack(pady=20)
+
+        def on_save():
+            address = address_var.get().strip()
+            note = note_var.get().strip()
+            tags_input = tags_var.get().strip()
+            tags = [t.strip() for t in tags_input.split(',') if t.strip()]
+
+            if not address:
+                messagebox.showerror("错误", "请输入地址")
+                return
+
+            if self.favorites.add_favorite(address, note, tags):
+                self.add_message(self.lang.get_text('msg_favorite_added'), 'success')
+                self.refresh_favorites_display()
+                dialog.destroy()
+            else:
+                messagebox.showerror("错误", "保存收藏失败")
+
+        save_btn = tk.Button(
+            button_frame,
+            text="保存",
+            command=on_save,
+            font=FONTS['body'],
+            bg=COLORS['accent'],
+            fg=COLORS['text_primary'],
+            relief=tk.FLAT,
+            padx=20,
+            pady=5,
+            cursor='hand2'
+        )
+        save_btn.pack(side=tk.LEFT, padx=10)
+
+        cancel_btn = tk.Button(
+            button_frame,
+            text="取消",
+            command=dialog.destroy,
+            font=FONTS['body'],
+            bg=COLORS['bg_tertiary'],
+            fg=COLORS['text_primary'],
+            relief=tk.FLAT,
+            padx=20,
+            pady=5,
+            cursor='hand2'
+        )
+        cancel_btn.pack(side=tk.LEFT, padx=10)
+
+    def export_favorites(self):
+        """导出收藏到CSV"""
+        try:
+            from tkinter import filedialog
+            filepath = filedialog.asksaveasfilename(
+                defaultextension=".csv",
+                filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+                initialfile="favorites_export.csv"
+            )
+
+            if filepath:
+                if self.favorites.export_to_csv(filepath):
+                    self.add_message(
+                        self.lang.get_text('msg_favorite_export_success') + filepath,
+                        'success'
+                    )
+                else:
+                    messagebox.showerror("错误", "导出失败")
+
+        except Exception as e:
+            print(f"导出收藏失败: {e}")
+            messagebox.showerror("错误", f"导出失败: {e}")
+
+    def import_favorites(self):
+        """从CSV导入收藏"""
+        try:
+            from tkinter import filedialog
+            filepath = filedialog.askopenfilename(
+                filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+            )
+
+            if filepath:
+                count = self.favorites.import_from_csv(filepath)
+                if count > 0:
+                    self.add_message(
+                        self.lang.get_text('msg_favorite_import_success', count=count),
+                        'success'
+                    )
+                    self.refresh_favorites_display()
+                else:
+                    messagebox.showwarning("警告", "未导入任何数据")
+
+        except Exception as e:
+            print(f"导入收藏失败: {e}")
+            messagebox.showerror("错误", f"导入失败: {e}")
 
     def on_monitor_trader_select(self, event):
         """当选中监控列表中的大户时，显示详情"""
@@ -6731,12 +7255,23 @@ class HyperliquidMonitor:
                 try:
                     # 获取所有标签页
                     tabs = self.notebook.tabs()
-                    if len(tabs) >= 5:
+                    # 更新每个标签页的名称
+                    # 注意：标签页的顺序是固定的，根据创建顺序
+                    # 0: 原始数据, 1: 持仓数据, 2: OKX数据表格, 3: OKX市值热力图,
+                    # 4: OKX当前持仓, 5: OKX当前委托, 6: 自动跟单监控, 7: 收藏地址
+                    if len(tabs) >= 1:
                         self.notebook.tab(tabs[0], text=self.lang.get_text('tab_raw_data'))
+                    if len(tabs) >= 2:
                         self.notebook.tab(tabs[1], text=self.lang.get_text('tab_position_data'))
+                    if len(tabs) >= 3:
                         self.notebook.tab(tabs[2], text=self.lang.get_text('tab_okx_table'))
+                    if len(tabs) >= 4:
                         self.notebook.tab(tabs[3], text=self.lang.get_text('tab_okx_heatmap'))
+                    if len(tabs) >= 5:
                         self.notebook.tab(tabs[4], text=self.lang.get_text('tab_okx_analysis'))
+                    if len(tabs) >= 8:
+                        # 第8个标签页是收藏地址
+                        self.notebook.tab(tabs[7], text=self.lang.get_text('tab_favorites'))
                 except Exception as e:
                     print(f"更新标签页名称失败: {e}")
 
